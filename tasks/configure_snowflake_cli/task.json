@@ -10,7 +10,7 @@
     "version": {
         "Major": 0,
         "Minor": 0,
-        "Patch": 7
+        "Patch": 8
     },
     "instanceNameFormat": "Configure Snowflake CLI",
     "inputs": [
@@ -29,6 +29,14 @@
             "defaultValue": "latest",
             "required": true,
             "helpMarkDown": "The Snowflake CLI version to be installed."
+        },
+        {
+            "name": "useWorkloadIdentity",
+            "type": "boolean",
+            "label": "Enable Azure workload identity authentication",
+            "defaultValue": "false",
+            "required": false,
+            "helpMarkDown": "Enable Azure workload identity authentication for Snowflake CLI. When set to true, the task will set SNOWFLAKE_AUTHENTICATOR and SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER environment variables so that the Snowflake driver authenticates using the Azure managed identity of the pipeline agent."
         }
     ],
     "execution": {

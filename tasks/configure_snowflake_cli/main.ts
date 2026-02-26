@@ -18,14 +18,19 @@ import path from 'path';
 import * as task from 'azure-pipelines-task-lib';
 import { setupConfigFile } from './src/setupConfigFile';
 import { installSnowflakeCli } from './src/installSnowflakeCli';
+import { setupWorkloadIdentity } from './src/setupWorkloadIdentity';
 
 async function run() {
     try {
         task.setResourcePath(path.join(__dirname, 'task.json'));
         const configFilePath: string | undefined = tl.getInput('configFilePath', false);
         const cliVersion: string | undefined = tl.getInput('cliVersion', false);
+        const useWorkloadIdentity: boolean = tl.getBoolInput('useWorkloadIdentity', false);
         installSnowflakeCli(cliVersion);
         setupConfigFile(configFilePath);
+        if (useWorkloadIdentity) {
+            await setupWorkloadIdentity();
+        }
     }
     catch (err:any) {
         tl.setResult(tl.TaskResult.Failed, err.message);

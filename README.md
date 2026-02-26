@@ -19,7 +19,80 @@ The specified Snowflake CLI version. For example, `2.2.0`. If not specified, the
 
 Path to the configuration file (`config.toml`) in your repository. The path must be relative to the root of your repository.
 
+### `use-workload-identity`
+
+Boolean flag to enable Azure workload identity authentication. When set to `true`, the task will configure the CLI to use the Azure managed identity of the pipeline agent for authentication with Snowflake, eliminating the need for storing credentials as secrets. Default is `false`.
+
 ## How to Safely Configure the Pipeline
+
+### Use Azure workload identity authentication
+
+Azure workload identity authentication provides a secure and modern way to authenticate with Snowflake without storing credentials as secrets. This approach uses the Azure managed identity attached to the pipeline agent to authenticate with Snowflake.
+
+To set up Azure workload identity authentication, follow these steps:
+
+1. **Configure Microsoft Entra ID**:
+
+   A Microsoft Entra ID tenant administrator must consent to the multi-tenant Snowflake EntraID app by visiting the [consent URI](https://login.microsoftonline.com/common/adminconsent?client_id=2b0bfd60-5ae4-4edb-aaad-0feb7e2fac24). This only needs to be done once per tenant.
+
+2. **Enable a managed identity on the pipeline agent**:
+
+   Enable a managed identity for the Azure VM or Azure Function that runs your pipeline agent. Save the Object (Principal) ID for the next step. See the [Azure documentation](https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview) for details.
+
+3. **Configure Snowflake**:
+
+   Create a service user with Azure workload identity type:
+
+   ```sql
+   CREATE USER <username>
+     WORKLOAD_IDENTITY = (
+       TYPE = AZURE
+       ISSUER = 'https://login.microsoftonline.com/<tenant_id>/v2.0'
+       SUBJECT = '<object_principal_id>'
+     )
+     TYPE = SERVICE
+     DEFAULT_ROLE = PUBLIC;
+   ```
+
+   - `<tenant_id>` is your Microsoft Entra tenant ID
+   - `<object_principal_id>` is the Object (Principal) ID of the managed identity
+
+   For more details, see the [Snowflake documentation](https://docs.snowflake.com/en/user-guide/workload-identity-federation).
+
+4. **Store your Snowflake account in Azure DevOps Pipeline Secrets**:
+
+   Store your Snowflake account identifier in Azure DevOps Pipeline Secrets. Refer to the [Azure DevOps documentation](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/set-secret-variables?view=azure-devops&tabs=yaml%2Cbash#secret-variable-in-the-ui) for detailed instructions.
+
+5. **Configure the Snowflake CLI Task with workload identity authentication**:
+
+   ```yaml
+   trigger:
+   - main
+
+   pool:
+     vmImage: ubuntu-latest
+
+   steps:
+   - task: ConfigureSnowflakeCLI@0
+     inputs:
+       configFilePath: './config.toml'
+       cliVersion: 'latest'
+       useWorkloadIdentity: true
+     displayName: Configure Snowflake CLI with Azure Workload Identity
+
+   - script: |
+       snow --version
+       snow connection test -x
+     env:
+       SNOWFLAKE_ACCOUNT: $(SNOWFLAKE_ACCOUNT)
+       SNOWFLAKE_USER: $(SNOWFLAKE_USER)
+   ```
+
+### Alternative authentication methods
+
+The following methods can be used as alternatives to workload identity authentication:
+
+#### Key-Pair Authentication
 
 To set up Snowflake credentials for a specific connection, follow these steps:
 

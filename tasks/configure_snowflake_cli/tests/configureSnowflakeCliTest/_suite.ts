@@ -82,6 +82,28 @@ describe('Snowflake Cli configuration', function () {
         });
     });
 
+    it('it should configure workload identity authentication variables', function(done: Mocha.Done) {
+        this.timeout(10000);    
+        const tp: string = path.join(__dirname, 'workloadIdentitySuccessSample.js');
+        const tr: ttm.MockTestRunner = new ttm.MockTestRunner(tp);
+    
+        tr.runAsync().then(async () => {
+            const test = require ('node:test');
+
+            await test('Should set SNOWFLAKE_AUTHENTICATOR variable', () => {
+                assert.equal(tr.stdout.indexOf('SNOWFLAKE_AUTHENTICATOR=WORKLOAD_IDENTITY') >= 0, true, "should set SNOWFLAKE_AUTHENTICATOR");
+            })
+
+            await test('Should set SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER variable', () => {
+                assert.equal(tr.stdout.indexOf('SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER=AZURE') >= 0, true, "should set SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER");
+            })
+
+            done();
+        }).catch((error) => {
+            done(error);
+        });
+    });
+
     it('it should fail if PIPX_BIN_DIR is not set', function(done: Mocha.Done) {
         this.timeout(10000);    
         const tp: string = path.join(__dirname, 'PipxBinDirNotSetSample.js');
