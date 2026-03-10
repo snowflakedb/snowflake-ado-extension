@@ -82,7 +82,7 @@ describe('Snowflake Cli configuration', function () {
         });
     });
 
-    it('it should configure workload identity authentication variables', function(done: Mocha.Done) {
+    it('it should fail when useWorkloadIdentity is true but connectedServiceName is missing', function(done: Mocha.Done) {
         this.timeout(10000);    
         const tp: string = path.join(__dirname, 'workloadIdentitySuccessSample.js');
         const tr: ttm.MockTestRunner = new ttm.MockTestRunner(tp);
@@ -90,12 +90,10 @@ describe('Snowflake Cli configuration', function () {
         tr.runAsync().then(async () => {
             const test = require ('node:test');
 
-            await test('Should set SNOWFLAKE_AUTHENTICATOR variable', () => {
-                assert.equal(tr.stdout.indexOf('SNOWFLAKE_AUTHENTICATOR=WORKLOAD_IDENTITY') >= 0, true, "should set SNOWFLAKE_AUTHENTICATOR");
-            })
+            assert.equal(tr.succeeded, false, 'should have failed');
 
-            await test('Should set SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER variable', () => {
-                assert.equal(tr.stdout.indexOf('SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER=AZURE') >= 0, true, "should set SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER");
+            await test('Should fail with missing connectedServiceName error', () => {
+                assert.equal(tr.errorIssues.some((e: string) => e.indexOf('connectedServiceName is required') >= 0), true, "should report missing connectedServiceName");
             })
 
             done();

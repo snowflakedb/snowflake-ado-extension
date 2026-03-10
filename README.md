@@ -21,49 +21,67 @@ Path to the configuration file (`config.toml`) in your repository. The path must
 
 ### `use-workload-identity`
 
-Boolean flag to enable Azure workload identity authentication. When set to `true`, the task will configure the CLI to use the Azure managed identity of the pipeline agent for authentication with Snowflake, eliminating the need for storing credentials as secrets. Default is `false`.
+Boolean flag to enable OIDC workload identity authentication. When set to `true`, the task will request an OIDC token from Azure DevOps using the specified service connection and configure the Snowflake driver to authenticate via workload identity federation, eliminating the need for storing credentials as secrets. Requires `connected-service-name`. Default is `false`.
+
+### `connected-service-name`
+
+The name of an Azure Resource Manager service connection configured with workload identity federation. Required when `use-workload-identity` is `true`. The task uses this service connection to request an OIDC token from Azure DevOps.
 
 ## How to Safely Configure the Pipeline
 
-### Use Azure workload identity authentication
+### Use workload identity authentication (OIDC)
 
-Azure workload identity authentication provides a secure and modern way to authenticate with Snowflake without storing credentials as secrets. This approach uses the Azure managed identity attached to the pipeline agent to authenticate with Snowflake.
+Workload identity federation provides a secure way to authenticate with Snowflake from Azure DevOps pipelines without storing credentials as secrets. The task requests an OIDC token from Azure DevOps via the service connection and passes it to the Snowflake driver.
 
-To set up Azure workload identity authentication, follow these steps:
+To set up workload identity authentication, follow these steps:
 
-1. **Configure Microsoft Entra ID**:
+1. **Create an Azure App Registration with a federated credential**:
 
-   A Microsoft Entra ID tenant administrator must consent to the multi-tenant Snowflake EntraID app by visiting the [consent URI](https://login.microsoftonline.com/common/adminconsent?client_id=2b0bfd60-5ae4-4edb-aaad-0feb7e2fac24). This only needs to be done once per tenant.
+   Create an App Registration in Microsoft Entra ID and add a federated credential for your ADO service connection. See the [Azure documentation](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-create-trust) for details.
 
-2. **Enable a managed identity on the pipeline agent**:
+2. **Create an Azure DevOps service connection**:
 
-   Enable a managed identity for the Azure VM or Azure Function that runs your pipeline agent. Save the Object (Principal) ID for the next step. See the [Azure documentation](https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview) for details.
+   In your ADO project, create an Azure Resource Manager service connection using Workload Identity Federation. Note the service connection name for the pipeline configuration.
 
 3. **Configure Snowflake**:
 
-   Create a service user with Azure workload identity type:
+   Create a service user with OIDC workload identity. The `ISSUER` and `SUBJECT` values come from the OIDC token issued by the service connection. To discover these values, add a debug step to your pipeline:
+
+   ```yaml
+   - bash: |
+       cat "$SNOWFLAKE_TOKEN_FILE_PATH" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | python3 -m json.tool
+     displayName: 'Debug: inspect OIDC token claims'
+   ```
+
+   Then create (or alter) the Snowflake user:
 
    ```sql
    CREATE USER <username>
      WORKLOAD_IDENTITY = (
-       TYPE = AZURE
-       ISSUER = 'https://login.microsoftonline.com/<tenant_id>/v2.0'
-       SUBJECT = '<object_principal_id>'
+       TYPE = OIDC
+       ISSUER = '<iss claim from token>'
+       SUBJECT = '<sub claim from token>'
+       OIDC_AUDIENCE_LIST = ('<aud claim from token>')
      )
      TYPE = SERVICE
      DEFAULT_ROLE = PUBLIC;
    ```
 
-   - `<tenant_id>` is your Microsoft Entra tenant ID
-   - `<object_principal_id>` is the Object (Principal) ID of the managed identity
-
    For more details, see the [Snowflake documentation](https://docs.snowflake.com/en/user-guide/workload-identity-federation).
 
-4. **Store your Snowflake account in Azure DevOps Pipeline Secrets**:
+4. **Configure the pipeline**:
 
-   Store your Snowflake account identifier in Azure DevOps Pipeline Secrets. Refer to the [Azure DevOps documentation](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/set-secret-variables?view=azure-devops&tabs=yaml%2Cbash#secret-variable-in-the-ui) for detailed instructions.
+   Add a `config.toml` to your repository (no credentials needed):
 
-5. **Configure the Snowflake CLI Task with workload identity authentication**:
+   ```toml
+   [connections.default]
+   account = "<your_account>"
+   user = "<snowflake_service_user>"
+   warehouse = "COMPUTE_WH"
+   role = "SYSADMIN"
+   ```
+
+   Then configure your pipeline YAML:
 
    ```yaml
    trigger:
@@ -78,14 +96,12 @@ To set up Azure workload identity authentication, follow these steps:
        configFilePath: './config.toml'
        cliVersion: 'latest'
        useWorkloadIdentity: true
-     displayName: Configure Snowflake CLI with Azure Workload Identity
+       connectedServiceName: '<your-service-connection-name>'
+     displayName: Configure Snowflake CLI with Workload Identity
 
    - script: |
        snow --version
-       snow connection test -x
-     env:
-       SNOWFLAKE_ACCOUNT: $(SNOWFLAKE_ACCOUNT)
-       SNOWFLAKE_USER: $(SNOWFLAKE_USER)
+       snow connection test
    ```
 
 ### Alternative authentication methods
