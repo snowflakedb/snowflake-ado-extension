@@ -33,10 +33,19 @@
         {
             "name": "useWorkloadIdentity",
             "type": "boolean",
-            "label": "Enable Azure workload identity authentication",
+            "label": "Enable workload identity authentication",
             "defaultValue": "false",
             "required": false,
-            "helpMarkDown": "Enable Azure workload identity authentication for Snowflake CLI. When set to true, the task will set SNOWFLAKE_AUTHENTICATOR and SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER environment variables so that the Snowflake driver authenticates using the Azure managed identity of the pipeline agent."
+            "helpMarkDown": "Enable OIDC workload identity authentication for Snowflake CLI. When set to true, the task will request an OIDC token from Azure DevOps using the specified service connection and configure the Snowflake driver to authenticate via workload identity federation."
+        },
+        {
+            "name": "connectedServiceName",
+            "type": "connectedService:AzureRM",
+            "label": "Azure Service Connection",
+            "defaultValue": "",
+            "required": false,
+            "helpMarkDown": "The Azure Resource Manager service connection configured with workload identity federation. Required when useWorkloadIdentity is true.",
+            "visibleRule": "useWorkloadIdentity = true"
         }
     ],
     "execution": {

@@ -11,11 +11,12 @@ schedules:
 pool:
   vmImage: ubuntu-latest
 
+steps:
 - script: |
     cat <<EOF > config.toml
-    default_connection_name = "myconnection" 
-      
-    [connections] 
+    default_connection_name = "myconnection"
+
+    [connections]
     [connections.myconnection]
     user = "demo_user"
     warehouse = "COMPUTE_WH"
@@ -24,14 +25,14 @@ pool:
     role = "ACCOUNTADMIN"
     region = "us-east-1"
     EOF
-  displayName: 'Create Sample File with Multiple Lines'
+  displayName: 'Create Sample config.toml'
 
-steps:
 - task: ConfigureSnowflakeCLI@0
   inputs:
     configFilePath: './config.toml'
     cliVersion: '2.3.0'
+
   displayName: SnowflakeCliTest
 
-- script: snow connection list 
-  displayName: 'Snow Version'
+- script: snow connection list
+  displayName: 'Snow Connection List'
