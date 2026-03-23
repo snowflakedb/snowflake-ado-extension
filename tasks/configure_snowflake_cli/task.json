@@ -36,7 +36,7 @@
             "label": "Enable workload identity authentication",
             "defaultValue": "false",
             "required": false,
-            "helpMarkDown": "Enable OIDC workload identity authentication for Snowflake CLI. When set to true, the task will request an OIDC token from Azure DevOps using the specified service connection and configure the Snowflake driver to authenticate via workload identity federation."
+            "helpMarkDown": "Enable workload identity authentication for Snowflake CLI. When set to true, the task will request an OIDC token from Azure DevOps using the specified service connection and configure the Snowflake driver to authenticate with obtained token."
         },
         {
             "name": "connectedServiceName",

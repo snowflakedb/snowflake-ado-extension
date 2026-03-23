@@ -30,7 +30,7 @@ steps:
 - task: ConfigureSnowflakeCLI@0
   inputs:
     configFilePath: './config.toml'
-    cliVersion: '2.3.0'
+    cliVersion: '3.15.0'
 
   displayName: SnowflakeCliTest
 

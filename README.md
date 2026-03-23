@@ -21,7 +21,7 @@ Path to the configuration file (`config.toml`) in your repository. The path must
 
 ### `use-workload-identity`
 
-Boolean flag to enable OIDC workload identity authentication. When set to `true`, the task will request an OIDC token from Azure DevOps using the specified service connection and configure the Snowflake driver to authenticate via workload identity federation, eliminating the need for storing credentials as secrets. Requires `connected-service-name`. Default is `false`.
+Boolean flag to enable workload identity federation authentication. When set to `true`, the task will request an OIDC token from Azure DevOps using the specified service connection and configure the Snowflake driver to authenticate with obtained token, eliminating the need for storing credentials as secrets. Requires `connected-service-name`. Default is `false`.
 
 ### `connected-service-name`
 
@@ -45,29 +45,35 @@ To set up workload identity authentication, follow these steps:
 
 3. **Configure Snowflake**:
 
-   Create a service user with OIDC workload identity. The `ISSUER` and `SUBJECT` values come from the OIDC token issued by the service connection. To discover these values, add a debug step to your pipeline:
+   Create a service user with OIDC workload identity. The claim values for Azure DevOps OIDC tokens follow predictable patterns:
 
-   ```yaml
-   - bash: |
-       cat "$SNOWFLAKE_TOKEN_FILE_PATH" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | python3 -m json.tool
-     displayName: 'Debug: inspect OIDC token claims'
-   ```
+   - **Issuer** (`iss`): `https://vstoken.dev.azure.com/<Azure-AD-Tenant-ID>`
+   - **Subject** (`sub`): `sc://<ADO-Org-Name>/<ADO-Project-Name>/<Service-Connection-Name>`
+   - **Audience** (`aud`): `api://AzureADTokenExchange`
 
-   Then create (or alter) the Snowflake user:
+   Use these values to create (or alter) the Snowflake user:
 
    ```sql
    CREATE USER <username>
      WORKLOAD_IDENTITY = (
        TYPE = OIDC
-       ISSUER = '<iss claim from token>'
-       SUBJECT = '<sub claim from token>'
-       OIDC_AUDIENCE_LIST = ('<aud claim from token>')
+       ISSUER = 'https://vstoken.dev.azure.com/<Azure-AD-Tenant-ID>'
+       SUBJECT = 'sc://<ADO-Org-Name>/<ADO-Project-Name>/<Service-Connection-Name>'
+       OIDC_AUDIENCE_LIST = ('api://AzureADTokenExchange')
      )
      TYPE = SERVICE
      DEFAULT_ROLE = PUBLIC;
    ```
 
    For more details, see the [Snowflake documentation](https://docs.snowflake.com/en/user-guide/workload-identity-federation).
+
+   > **Troubleshooting**: If authentication fails due to a claim mismatch, you can inspect the actual token claims by adding a debug step to your pipeline:
+   >
+   > ```yaml
+   > - bash: |
+   >     echo "$SNOWFLAKE_TOKEN" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | python3 -m json.tool
+   >   displayName: 'Debug: inspect OIDC token claims'
+   > ```
 
 4. **Configure the pipeline**:
 
@@ -76,9 +82,8 @@ To set up workload identity authentication, follow these steps:
    ```toml
    [connections.default]
    account = "<your_account>"
-   user = "<snowflake_service_user>"
    warehouse = "COMPUTE_WH"
-   role = "SYSADMIN"
+   role = "PUBLIC"
    ```
 
    Then configure your pipeline YAML:

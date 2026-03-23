@@ -15,9 +15,6 @@
 
 import tl = require('azure-pipelines-task-lib');
 import * as azdev from 'azure-devops-node-api';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
 
 export async function setupWorkloadIdentity(connectedServiceName: string) {
     const jobId = tl.getVariable('System.JobId');
@@ -59,19 +56,10 @@ export async function setupWorkloadIdentity(connectedServiceName: string) {
 
     console.log('OIDC token obtained successfully.');
 
-    // Write the token to a temp file for the Snowflake connector to read
-    const tokenDir = path.join(os.tmpdir(), 'snowflake-wif');
-    if (!fs.existsSync(tokenDir)) {
-        fs.mkdirSync(tokenDir, { recursive: true });
-    }
-    const tokenFilePath = path.join(tokenDir, 'oidc_token');
-    fs.writeFileSync(tokenFilePath, oidcToken, { mode: 0o600 });
-
     // Set environment variables for the Snowflake CLI / connector
     tl.setVariable('SNOWFLAKE_AUTHENTICATOR', 'WORKLOAD_IDENTITY');
     tl.setVariable('SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER', 'OIDC');
-    tl.setVariable('SNOWFLAKE_TOKEN_FILE_PATH', tokenFilePath);
+    tl.setVariable('SNOWFLAKE_TOKEN', oidcToken, true);
 
     console.log('Workload identity authentication configured successfully (OIDC).');
-    console.log(`Token file written to: ${tokenFilePath}`);
 }
