@@ -16,20 +16,24 @@
 import tl = require('azure-pipelines-task-lib');
 import * as azdev from 'azure-devops-node-api';
 
-export async function setupWorkloadIdentity(connectedServiceName: string) {
-    const jobId = tl.getVariable('System.JobId');
-    const planId = tl.getVariable('System.PlanId');
-    const projectId = tl.getVariable('System.TeamProjectId');
-    const hub = tl.getVariable('System.HostType');
-    const collectionUri = tl.getVariable('System.CollectionUri');
-    const accessToken = tl.getVariable('System.AccessToken');
-
-    if (!jobId || !planId || !projectId || !hub || !collectionUri || !accessToken) {
+function getRequiredVariable(name: string): string {
+    const value = tl.getVariable(name);
+    if (!value) {
         throw new Error(
-            'Missing required pipeline variables. Ensure System.AccessToken is available ' +
-            '(add "- checkout: self" or set env explicitly).'
+            `Missing required pipeline variable '${name}'. ` +
+            'Ensure System.AccessToken is available (add "- checkout: self" or set env explicitly).'
         );
     }
+    return value;
+}
+
+export async function setupWorkloadIdentity(connectedServiceName: string) {
+    const jobId = getRequiredVariable('System.JobId');
+    const planId = getRequiredVariable('System.PlanId');
+    const projectId = getRequiredVariable('System.TeamProjectId');
+    const hub = getRequiredVariable('System.HostType');
+    const collectionUri = getRequiredVariable('System.CollectionUri');
+    const accessToken = getRequiredVariable('System.AccessToken');
 
     console.log('Requesting OIDC token from Azure DevOps...');
 

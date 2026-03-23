@@ -82,6 +82,31 @@ describe('Snowflake Cli configuration', function () {
         });
     });
 
+    it('it should succeed with workload identity when connectedServiceName is provided', function(done: Mocha.Done) {
+        this.timeout(10000);    
+        const tp: string = path.join(__dirname, 'workloadIdentitySuccessWithTokenSample.js');
+        const tr: ttm.MockTestRunner = new ttm.MockTestRunner(tp);
+    
+        tr.runAsync().then(async () => {
+            const test = require ('node:test');
+
+            assert.equal(tr.succeeded, true, 'should have succeeded');
+            assert.equal(tr.errorIssues.length, 0, "should have no errors");
+
+            await test('Should set SNOWFLAKE_AUTHENTICATOR', () => {
+                assert.equal(tr.stdout.indexOf('SNOWFLAKE_AUTHENTICATOR') >= 0, true, "should set SNOWFLAKE_AUTHENTICATOR");
+            })
+
+            await test('Should log success message', () => {
+                assert.equal(tr.stdout.indexOf('Workload identity authentication configured successfully') >= 0, true, "should log success");
+            })
+
+            done();
+        }).catch((error) => {
+            done(error);
+        });
+    });
+
     it('it should fail when useWorkloadIdentity is true but connectedServiceName is missing', function(done: Mocha.Done) {
         this.timeout(10000);    
         const tp: string = path.join(__dirname, 'workloadIdentitySuccessSample.js');

@@ -27,13 +27,13 @@ async function run() {
         const cliVersion: string | undefined = tl.getInput('cliVersion', false);
         const useWorkloadIdentity: boolean = tl.getBoolInput('useWorkloadIdentity', false);
         const connectedServiceName: string | undefined = tl.getInput('connectedServiceName', false);
+        if (useWorkloadIdentity && !connectedServiceName) {
+            throw new Error('connectedServiceName is required when useWorkloadIdentity is true.');
+        }
         installSnowflakeCli(cliVersion);
         setupConfigFile(configFilePath);
         if (useWorkloadIdentity) {
-            if (!connectedServiceName) {
-                throw new Error('connectedServiceName is required when useWorkloadIdentity is true.');
-            }
-            await setupWorkloadIdentity(connectedServiceName);
+            await setupWorkloadIdentity(connectedServiceName!);
         }
     }
     catch (err:any) {
