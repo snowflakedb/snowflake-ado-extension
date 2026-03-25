@@ -83,18 +83,27 @@ describe('Snowflake Cli configuration', function () {
     });
 
     it('it should succeed with workload identity when connectedServiceName is provided', function(done: Mocha.Done) {
-        this.timeout(10000);    
+        this.timeout(10000);
         const tp: string = path.join(__dirname, 'workloadIdentitySuccessWithTokenSample.js');
         const tr: ttm.MockTestRunner = new ttm.MockTestRunner(tp);
-    
+
         tr.runAsync().then(async () => {
             const test = require ('node:test');
 
             assert.equal(tr.succeeded, true, 'should have succeeded');
+            assert.equal(tr.warningIssues.length, 0, "should have no warnings");
             assert.equal(tr.errorIssues.length, 0, "should have no errors");
 
-            await test('Should set SNOWFLAKE_AUTHENTICATOR', () => {
-                assert.equal(tr.stdout.indexOf('SNOWFLAKE_AUTHENTICATOR') >= 0, true, "should set SNOWFLAKE_AUTHENTICATOR");
+            await test('Should set SNOWFLAKE_AUTHENTICATOR to WORKLOAD_IDENTITY', () => {
+                assert.equal(tr.stdout.indexOf('SNOWFLAKE_AUTHENTICATOR=WORKLOAD_IDENTITY') >= 0, true, "should set SNOWFLAKE_AUTHENTICATOR");
+            })
+
+            await test('Should set SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER to OIDC', () => {
+                assert.equal(tr.stdout.indexOf('SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER=OIDC') >= 0, true, "should set SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER");
+            })
+
+            await test('Should set SNOWFLAKE_TOKEN as secret', () => {
+                assert.equal(tr.stdout.indexOf('SNOWFLAKE_TOKEN=') >= 0, true, "should set SNOWFLAKE_TOKEN");
             })
 
             await test('Should log success message', () => {
@@ -114,12 +123,28 @@ describe('Snowflake Cli configuration', function () {
     
         tr.runAsync().then(async () => {
             const test = require ('node:test');
+            assert.equal(tr.succeeded, false, 'should have not succeeded');
+            assert.equal(tr.warningIssues.length, 0, "should have no warnings");
+            assert.equal(tr.errorIssues.length, 1, "should have one error");
+            assert.match(tr.errorIssues[0], new RegExp('connectedServiceName is required'), 'should report missing connectedServiceName');
 
-            assert.equal(tr.succeeded, false, 'should have failed');
+            done();
+        }).catch((error) => {
+            done(error);
+        });
+    });
 
-            await test('Should fail with missing connectedServiceName error', () => {
-                assert.equal(tr.errorIssues.some((e: string) => e.indexOf('connectedServiceName is required') >= 0), true, "should report missing connectedServiceName");
-            })
+    it('it should fail when a required pipeline variable is missing', function(done: Mocha.Done) {
+        this.timeout(10000);
+        const tp: string = path.join(__dirname, 'workloadIdentityMissingVariableSample.js');
+        const tr: ttm.MockTestRunner = new ttm.MockTestRunner(tp);
+
+        tr.runAsync().then(async () => {
+            const test = require ('node:test');
+            assert.equal(tr.succeeded, false, 'should have not succeeded');
+            assert.equal(tr.warningIssues.length, 0, "should have no warnings");
+            assert.equal(tr.errorIssues.length, 1, "should have one error");
+            assert.match(tr.errorIssues[0], new RegExp("Missing required pipeline variable 'System.AccessToken'"), 'should report missing System.AccessToken');
 
             done();
         }).catch((error) => {

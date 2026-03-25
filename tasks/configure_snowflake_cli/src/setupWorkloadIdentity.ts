@@ -21,7 +21,7 @@ function getRequiredVariable(name: string): string {
     if (!value) {
         throw new Error(
             `Missing required pipeline variable '${name}'. ` +
-            'Ensure System.AccessToken is available (add "- checkout: self" or set env explicitly).'
+            `Ensure '${name}' is available (add "- checkout: self" or set env explicitly).`
         );
     }
     return value;
