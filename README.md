@@ -19,7 +19,101 @@ The specified Snowflake CLI version. For example, `2.2.0`. If not specified, the
 
 Path to the configuration file (`config.toml`) in your repository. The path must be relative to the root of your repository.
 
+### `use-workload-identity`
+
+Boolean flag to enable workload identity federation authentication. When set to `true`, the task will request an OIDC token from Azure DevOps using the specified service connection and configure the Snowflake driver to authenticate with obtained token, eliminating the need for storing credentials as secrets. Requires `connected-service-name`. Default is `false`.
+
+### `connected-service-name`
+
+The name of an Azure Resource Manager service connection configured with workload identity federation. Required when `use-workload-identity` is `true`. The task uses this service connection to request an OIDC token from Azure DevOps.
+
 ## How to Safely Configure the Pipeline
+
+### Use workload identity authentication (OIDC)
+
+Workload identity federation provides a secure way to authenticate with Snowflake from Azure DevOps pipelines without storing credentials as secrets. The task requests an OIDC token from Azure DevOps via the service connection and passes it to the Snowflake driver.
+
+To set up workload identity authentication, follow these steps:
+
+1. **Create an Azure App Registration with a federated credential**:
+
+   Create an App Registration in Microsoft Entra ID and add a federated credential for your ADO service connection. See the [Azure documentation](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-create-trust) for details.
+
+2. **Create an Azure DevOps service connection**:
+
+   In your ADO project, create an Azure Resource Manager service connection using Workload Identity Federation. Note the service connection name for the pipeline configuration.
+
+3. **Configure Snowflake**:
+
+   Create a service user with OIDC workload identity. The claim values for Azure DevOps OIDC tokens follow predictable patterns:
+
+   - **Issuer** (`iss`): `https://vstoken.dev.azure.com/<Azure-AD-Tenant-ID>`
+   - **Subject** (`sub`): `sc://<ADO-Org-Name>/<ADO-Project-Name>/<Service-Connection-Name>`
+   - **Audience** (`aud`): `api://AzureADTokenExchange`
+
+   Use these values to create (or alter) the Snowflake user:
+
+   ```sql
+   CREATE USER <username>
+     WORKLOAD_IDENTITY = (
+       TYPE = OIDC
+       ISSUER = 'https://vstoken.dev.azure.com/<Azure-AD-Tenant-ID>'
+       SUBJECT = 'sc://<ADO-Org-Name>/<ADO-Project-Name>/<Service-Connection-Name>'
+       OIDC_AUDIENCE_LIST = ('api://AzureADTokenExchange')
+     )
+     TYPE = SERVICE
+     DEFAULT_ROLE = PUBLIC;
+   ```
+
+   For more details, see the [Snowflake documentation](https://docs.snowflake.com/en/user-guide/workload-identity-federation).
+
+   > **Troubleshooting**: If authentication fails due to a claim mismatch, you can inspect the actual token claims by adding a debug step to your pipeline:
+   >
+   > ```yaml
+   > - bash: |
+   >     echo "$SNOWFLAKE_TOKEN" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | python3 -m json.tool
+   >   displayName: 'Debug: inspect OIDC token claims'
+   > ```
+
+4. **Configure the pipeline**:
+
+   Add a `config.toml` to your repository (no credentials needed):
+
+   ```toml
+   [connections.default]
+   account = "<your_account>"
+   warehouse = "COMPUTE_WH"
+   role = "PUBLIC"
+   ```
+
+   Then configure your pipeline YAML:
+
+   ```yaml
+   trigger:
+   - main
+
+   pool:
+     vmImage: ubuntu-latest
+
+   steps:
+   - task: ConfigureSnowflakeCLI@0
+     inputs:
+       configFilePath: './config.toml'
+       cliVersion: 'latest'
+       useWorkloadIdentity: true
+       connectedServiceName: '<your-service-connection-name>'
+     displayName: Configure Snowflake CLI with Workload Identity
+
+   - script: |
+       snow --version
+       snow connection test
+   ```
+
+### Alternative authentication methods
+
+The following methods can be used as alternatives to workload identity authentication:
+
+#### Key-Pair Authentication
 
 To set up Snowflake credentials for a specific connection, follow these steps:
 

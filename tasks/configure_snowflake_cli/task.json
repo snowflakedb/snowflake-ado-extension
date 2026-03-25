@@ -10,7 +10,7 @@
     "version": {
         "Major": 0,
         "Minor": 0,
-        "Patch": 7
+        "Patch": 8
     },
     "instanceNameFormat": "Configure Snowflake CLI",
     "inputs": [
@@ -29,6 +29,23 @@
             "defaultValue": "latest",
             "required": true,
             "helpMarkDown": "The Snowflake CLI version to be installed."
+        },
+        {
+            "name": "useWorkloadIdentity",
+            "type": "boolean",
+            "label": "Enable workload identity authentication",
+            "defaultValue": "false",
+            "required": false,
+            "helpMarkDown": "Enable workload identity authentication for Snowflake CLI. When set to true, the task will request an OIDC token from Azure DevOps using the specified service connection and configure the Snowflake driver to authenticate with obtained token."
+        },
+        {
+            "name": "connectedServiceName",
+            "type": "connectedService:AzureRM",
+            "label": "Azure Service Connection",
+            "defaultValue": "",
+            "required": false,
+            "helpMarkDown": "The Azure Resource Manager service connection configured with workload identity federation. Required when useWorkloadIdentity is true.",
+            "visibleRule": "useWorkloadIdentity = true"
         }
     ],
     "execution": {

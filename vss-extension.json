@@ -2,7 +2,7 @@
     "manifestVersion": 1,
     "id": "build-release-task",
     "name": "DevOps for Snowflake CLI",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "publisher": "snowflake",
     "targets": [
         {
@@ -14,7 +14,7 @@
         "Azure Pipelines"
     ],
     "icons": {
-        "default": "images/extension-icon.png"        
+        "default": "images/extension-icon.png"
     },
     "content": {
         "details": {
