@@ -23,6 +23,11 @@ import { setupWorkloadIdentity } from './src/setupWorkloadIdentity';
 async function run() {
     try {
         task.setResourcePath(path.join(__dirname, 'task.json'));
+
+        // Set telemetry environment variables for Snowflake CLI tracking
+        tl.setVariable('SF_ADO_EXTENSION', 'true');
+        tl.setVariable('SF_CICD_INTEGRATION_VERSION', 'v0.0.8');
+
         const configFilePath: string | undefined = tl.getInput('configFilePath', false);
         const cliVersion: string | undefined = tl.getInput('cliVersion', false);
         const useWorkloadIdentity: boolean = tl.getBoolInput('useWorkloadIdentity', false);
