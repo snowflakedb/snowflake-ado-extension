@@ -20,7 +20,7 @@ npm run test
 
 Follow these steps to create a release:
 
-1. **Update Version Numbers**: Modify the `vss-extension.json` and `tasks/configure_snowflake_cli/task.json` files to reflect the new version number.
+1. **Update Version Numbers**: Modify the `vss-extension.json`, `tasks/configure_snowflake_cli/task.json`, and the `INTEGRATION_VERSION` constant in `tasks/configure_snowflake_cli/main.ts` to reflect the new version number.
 
 2. **Set Up the Release Environment**: Navigate to the `tasks/configure_snowflake_cli` directory and execute the following command to create the extension:
 

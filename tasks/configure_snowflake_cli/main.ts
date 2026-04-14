@@ -20,13 +20,16 @@ import { setupConfigFile } from './src/setupConfigFile';
 import { installSnowflakeCli } from './src/installSnowflakeCli';
 import { setupWorkloadIdentity } from './src/setupWorkloadIdentity';
 
+// Bump on each release to match vss-extension.json and task.json
+const INTEGRATION_VERSION = 'v0.0.8';
+
 async function run() {
     try {
         task.setResourcePath(path.join(__dirname, 'task.json'));
 
         // Set telemetry environment variables for Snowflake CLI tracking
         tl.setVariable('SF_ADO_EXTENSION', 'true');
-        tl.setVariable('SF_CICD_INTEGRATION_VERSION', 'v0.0.8');
+        tl.setVariable('SF_CICD_INTEGRATION_VERSION', INTEGRATION_VERSION);
 
         const configFilePath: string | undefined = tl.getInput('configFilePath', false);
         const cliVersion: string | undefined = tl.getInput('cliVersion', false);
