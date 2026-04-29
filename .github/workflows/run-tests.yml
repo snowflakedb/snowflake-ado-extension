@@ -11,7 +11,7 @@ jobs:
       run: |
         cd tasks/configure_snowflake_cli
         export TASK_TEST_TRACE=1
-        unset PIPX_BIN_DIR
+        unset UV_TOOL_BIN_DIR
         npm install -include=dev
         npm test
 

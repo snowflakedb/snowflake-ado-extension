@@ -16,12 +16,19 @@
 ﻿import * as task from 'azure-pipelines-task-lib';
 import fs from 'fs';
 
-// Enviroment variables names
-export const PIPX_BIN_DIR = "PIPX_BIN_DIR";
+// Environment variable names
+export const UV_TOOL_BIN_DIR = "UV_TOOL_BIN_DIR";
 export const CONFIG_TOML_FILE_OUTPUT_PATH = "CONFIG_TOML_FILE_OUTPUT_PATH";
 export const SNOW_EXECUTABLE_OUTPUT_PATH = "SNOW_EXECUTABLE_OUTPUT_PATH";
-export const DISABLE_SNOW_INSTALLATION_WITH_PIPX = "DISABLE_SNOW_INSTALLATION_WITH_PIPX";
+export const DISABLE_SNOW_INSTALLATION_WITH_UV = "DISABLE_SNOW_INSTALLATION_WITH_UV";
 export const SNOWFLAKE_PACKAGE_NAME = "snowflake-cli";
+
+// Pinned uv version. Bump both values together; the SHA-256 must match the
+// published digest at
+// https://github.com/astral-sh/uv/releases/download/<version>/uv-x86_64-unknown-linux-gnu.tar.gz.sha256
+export const UV_VERSION = "0.11.8";
+export const UV_LINUX_X86_64_SHA256 =
+    "56dd1b66701ecb62fe896abb919444e4b83c5e8645cca953e6ddd496ff8a0feb";
 
 export enum Platform {
     Windows,

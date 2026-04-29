@@ -152,21 +152,21 @@ describe('Snowflake Cli configuration', function () {
         });
     });
 
-    it('it should fail if PIPX_BIN_DIR is not set', function(done: Mocha.Done) {
-        this.timeout(10000);    
-        const tp: string = path.join(__dirname, 'PipxBinDirNotSetSample.js');
+    it('it should fail if UV_TOOL_BIN_DIR is not set', function(done: Mocha.Done) {
+        this.timeout(10000);
+        const tp: string = path.join(__dirname, 'UvToolBinDirNotSetSample.js');
         const tr: ttm.MockTestRunner = new ttm.MockTestRunner(tp);
-    
+
         tr.runAsync().then(async () => {
             const test = require ('node:test');
             assert.equal(tr.succeeded, false, 'should have not succeeded');
             assert.equal(tr.warningIssues.length, 0, "should have no warnings");
-            assert.equal(tr.errorIssues.length, 2, "should one error");
-            assert.match(tr.errorIssues[0], new RegExp('Error environment variable PIPX_BIN_DIR'), 'PIPX_BIN_DIR is defined');
+            assert.equal(tr.errorIssues.length, 1, "should have one error");
+            assert.match(tr.errorIssues[0], new RegExp('Error environment variable UV_TOOL_BIN_DIR'), 'UV_TOOL_BIN_DIR is defined');
 
             done();
         }).catch((error) => {
             done(error);
         });
-    });    
+    });
 });
