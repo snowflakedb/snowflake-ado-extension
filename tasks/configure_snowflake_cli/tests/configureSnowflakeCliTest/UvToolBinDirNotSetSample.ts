@@ -23,8 +23,10 @@ const taskPath = path.join(__dirname, '..', '..', 'main.js');
 const task: tmrm.TaskMockRunner = new tmrm.TaskMockRunner(taskPath);
 process.env["CONFIG_TOML_FILE_OUTPUT_PATH"] = TEMP_CONFIG_FILE_PATH;
 process.env["SNOW_EXECUTABLE_OUTPUT_PATH"] = TEMP_EXEC_OUTPUT_PATH;
-process.env["DISABLE_SNOW_INSTALLATION_WITH_PIPX"] = 'true';
+// Deliberately omit UV_TOOL_BIN_DIR to trigger the failure case.
+// Disable the real install so the test does not hit the network.
+process.env["DISABLE_SNOW_INSTALLATION_WITH_UV"] = 'true';
 
 task.setInput('configFilePath', path.join(__dirname, 'testFiles', 'config.toml'));
-task.setInput('cliVersion', '2.1.0');
+task.setInput('cliVersion', '3.17.0');
 task.run(true);
