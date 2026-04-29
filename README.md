@@ -1,31 +1,30 @@
-# Snowflake CLI Azure Devops
+# DevOps for Snowflake CLI
 
-**Note:** Snowflake CLI Azure Devops is in early development phase. The project may change or be abandoned. Do not use for production use cases.
-
+**Note:** The Snowflake CLI Azure DevOps extension is in Public Preview.
 
 ## Usage
 
-Streamlines installing and using [Snowflake CLI](https://docs.snowflake.com/developer-guide/snowflake-cli-v2/index) in your CI/CD workflows. The CLI is installed in an isolated way, ensuring it won't conflict with your project dependencies. It automatically sets up the input config file within the `~/.snowflake/` directory.
+This extension streamlines installing and using [Snowflake CLI](https://docs.snowflake.com/developer-guide/snowflake-cli-v2/index) in your Azure Pipelines. The CLI is installed in an isolated way, ensuring it won't conflict with your project dependencies. It automatically sets up the input config file within the `~/.snowflake/` directory.
 
-This pipeline enables automation of your Snowflake CLI tasks, such as deploying Native Apps or running Snowpark scripts within your Snowflake environment.
+The extension contributes a single build task, `ConfigureSnowflakeCLI@0`, that enables automation of your Snowflake CLI workflows, such as deploying Native Apps or running Snowpark scripts within your Snowflake environment.
 
-## Parameters
+## Inputs
 
-### `cli-version`
+### `cliVersion`
 
-The specified Snowflake CLI version. For example, `2.2.0`. If not specified, the latest version will be used.
+The Snowflake CLI version to install. For example, `3.11.0`. If not specified, the latest released version is used.
 
-### `default-config-file-path`
+### `configFilePath`
 
 Path to the configuration file (`config.toml`) in your repository. The path must be relative to the root of your repository.
 
-### `use-workload-identity`
+### `useWorkloadIdentity`
 
-Boolean flag to enable workload identity federation authentication. When set to `true`, the task will request an OIDC token from Azure DevOps using the specified service connection and configure the Snowflake driver to authenticate with obtained token, eliminating the need for storing credentials as secrets. Requires `connected-service-name`. Default is `false`.
+Boolean flag to enable workload identity federation authentication. When set to `true`, the task will request an OIDC token from Azure DevOps using the specified service connection and configure the Snowflake driver to authenticate with the obtained token, eliminating the need for storing credentials as secrets. Requires `connectedServiceName` and Snowflake CLI `3.11.0` or later. Default is `false`.
 
-### `connected-service-name`
+### `connectedServiceName`
 
-The name of an Azure Resource Manager service connection configured with workload identity federation. Required when `use-workload-identity` is `true`. The task uses this service connection to request an OIDC token from Azure DevOps.
+The name of an Azure Resource Manager service connection configured with workload identity federation. Required when `useWorkloadIdentity` is `true`. The task uses this service connection to request an OIDC token from Azure DevOps.
 
 ## How to Safely Configure the Pipeline
 
@@ -140,13 +139,13 @@ To set up Snowflake credentials for a specific connection, follow these steps:
 
 4. **Configure the Snowflake CLI Task**:
 
-   Add the `default-config-file-path` parameter to the Snowflake CLI task in your pipeline YAML file. This specifies the path to your `config.toml` file. For example:
+   Add the `configFilePath` input to the Snowflake CLI task in your pipeline YAML file. This specifies the path to your `config.toml` file. For example:
 
    ```yaml
-   - task: SnowflakeCLI@1
+   - task: ConfigureSnowflakeCLI@0
      inputs:
        cliVersion: 'latest'
-       defaultConfigFilePath: 'config.toml'
+       configFilePath: 'config.toml'
    ```
 
 5. **Define the Commands to Execute**
@@ -163,7 +162,7 @@ To set up Snowflake credentials for a specific connection, follow these steps:
 
 6. **Map Secrets to Environment Variables in your script**:
 
-   Use envrionmental variables to map each secret. For example:
+   Use environment variables to map each secret. For example:
 
    ```yaml
    env:
