@@ -23,7 +23,7 @@
     },
     "repository": {
         "type": "git",
-        "uri": "https://github.com/Snowflake-Labs/snowflake-ado-extension"
+        "uri": "https://github.com/snowflakedb/snowflake-ado-extension"
     },
     "galleryFlags": [
         "Public",
@@ -34,13 +34,13 @@
             "uri": "https://docs.snowflake.com/en/developer-guide/snowflake-cli-v2/index"
         },
         "Repository": {
-            "uri": "https://github.com/Snowflake-Labs/snowflake-ado-extension"
+            "uri": "https://github.com/snowflakedb/snowflake-ado-extension"
         },
         "Issues": {
-            "uri": "https://github.com/Snowflake-Labs/snowflake-ado-extension/issues"
+            "uri": "https://github.com/snowflakedb/snowflake-ado-extension/issues"
         },
         "License": {
-            "uri": "https://github.com/Snowflake-Labs/snowflake-ado-extension/blob/main/LICENSE"
+            "uri": "https://github.com/snowflakedb/snowflake-ado-extension/blob/main/LICENSE"
         }
     },
 
