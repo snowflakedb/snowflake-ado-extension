@@ -1,4 +1,4 @@
-﻿trigger:
+trigger:
 - main
 
 schedules:
@@ -11,28 +11,87 @@ schedules:
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- script: |
-    cat <<EOF > config.toml
-    default_connection_name = "myconnection"
+# Pipeline-level variables the OIDC E2E stage expects to be provided via the
+# Azure DevOps project variables (or a linked variable group):
+#   - SNOWFLAKE_ACCOUNT:                Snowflake account identifier of the
+#                                       shared CI/CD integrations test account.
+#   - SNOWFLAKE_USER:                   Service user created with
+#                                       TYPE = SERVICE and WORKLOAD_IDENTITY
+#                                       (TYPE = OIDC) whose SUBJECT matches
+#                                       this pipeline's ADO federated identity.
+#   - SNOWFLAKE_ADO_SERVICE_CONNECTION: Name of the ARM service connection
+#                                       configured with workload identity
+#                                       federation against the corresponding
+#                                       Entra ID App Registration.
+# When SNOWFLAKE_ACCOUNT is empty (e.g. a fork or a minimal setup) the OIDC
+# E2E stage is skipped — the smoke stage still runs and guards install/config.
 
-    [connections]
-    [connections.myconnection]
-    user = "demo_user"
-    warehouse = "COMPUTE_WH"
-    database = "mytestdb"
-    schema = "PUBLIC"
-    role = "ACCOUNTADMIN"
-    region = "us-east-1"
-    EOF
-  displayName: 'Create Sample config.toml'
+stages:
+  - stage: Smoke
+    displayName: 'Install + config smoke test'
+    jobs:
+      - job: smoke
+        displayName: 'Install CLI and deploy config.toml'
+        steps:
+          - script: |
+              cat <<EOF > config.toml
+              default_connection_name = "myconnection"
 
-- task: ConfigureSnowflakeCLI@0
-  inputs:
-    configFilePath: './config.toml'
-    cliVersion: '3.15.0'
+              [connections]
+              [connections.myconnection]
+              user = "demo_user"
+              warehouse = "COMPUTE_WH"
+              database = "mytestdb"
+              schema = "PUBLIC"
+              role = "ACCOUNTADMIN"
+              region = "us-east-1"
+              EOF
+            displayName: 'Create Sample config.toml'
 
-  displayName: SnowflakeCliTest
+          - task: ConfigureSnowflakeCLI@0
+            inputs:
+              configFilePath: './config.toml'
+              cliVersion: '3.15.0'
+            displayName: 'ConfigureSnowflakeCLI@0 (pinned CLI)'
 
-- script: snow connection list
-  displayName: 'Snow Connection List'
+          - script: snow connection list
+            displayName: 'snow connection list'
+
+  - stage: OidcE2E
+    displayName: 'OIDC workload identity E2E (live Snowflake handshake)'
+    dependsOn: Smoke
+    condition: and(succeeded(), ne(variables['SNOWFLAKE_ACCOUNT'], ''))
+    jobs:
+      - job: oidc_e2e_latest
+        displayName: 'Latest CLI — OIDC handshake against Snowflake'
+        steps:
+          - task: ConfigureSnowflakeCLI@0
+            inputs:
+              useWorkloadIdentity: true
+              connectedServiceName: $(SNOWFLAKE_ADO_SERVICE_CONNECTION)
+            displayName: 'ConfigureSnowflakeCLI@0 (OIDC, latest CLI)'
+
+          - script: |
+              set -euo pipefail
+              echo "Snowflake CLI version:"
+              snow --version
+              echo
+              echo "Verifying that the task exported the expected WIF env vars..."
+              : "${SNOWFLAKE_AUTHENTICATOR:?SNOWFLAKE_AUTHENTICATOR not set by the task}"
+              : "${SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER:?provider not set by the task}"
+              : "${SNOWFLAKE_TOKEN:?token not set by the task}"
+              test "$SNOWFLAKE_AUTHENTICATOR" = "WORKLOAD_IDENTITY"
+              test "$SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER" = "OIDC"
+              echo "WIF env vars look correct (token value masked)."
+            displayName: 'Verify WIF env vars (no secret values logged)'
+
+          - script: |
+              set -euo pipefail
+              # Temporary connection (-x) authenticates using the SNOWFLAKE_*
+              # env vars the task just set, exercising the full OIDC path:
+              # ADO OIDC token -> Snowflake WIF -> Snowflake session.
+              snow connection test -x
+            displayName: 'snow connection test -x (OIDC handshake)'
+            env:
+              SNOWFLAKE_ACCOUNT: $(SNOWFLAKE_ACCOUNT)
+              SNOWFLAKE_USER: $(SNOWFLAKE_USER)
