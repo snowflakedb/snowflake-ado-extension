@@ -36,3 +36,17 @@ steps:
 
 - script: snow connection list
   displayName: 'Snow Connection List'
+
+# Compat check against the latest published Snowflake CLI release. Paired
+# with the pinned-version step above so regressions in either the CLI or
+# the task are caught. Addresses SNOW-3428283 (Native CI/CD Integrations
+# ORR §2.2 / §7.4 — 48-hour latest-CLI compatibility SLO). Runs on the
+# same daily midnight schedule already defined above.
+- task: ConfigureSnowflakeCLI@0
+  inputs:
+    configFilePath: './config.toml'
+    cliVersion: 'latest'
+  displayName: 'SnowflakeCliTest (latest CLI)'
+
+- script: snow --version && snow --help > /dev/null && snow connection list
+  displayName: 'Smoke-test latest CLI'
