@@ -1,0 +1,60 @@
+name: Compatibility — latest Snowflake CLI
+
+# Daily scheduled smoke-test that installs the latest published Snowflake
+# CLI release via the same `uv tool install snowflake-cli` path used by
+# the extension's ConfigureSnowflakeCLI task (see
+# tasks/configure_snowflake_cli/src/installSnowflakeCli.ts).
+#
+# The authoritative end-to-end is the daily run of azure-pipelines.yml in
+# Azure DevOps, which exercises the published task from the Visual Studio
+# Marketplace. This GitHub Actions workflow is a fast-feedback mirror: if
+# a new CLI release breaks installation, failure shows up on the GitHub
+# dashboard the squad already watches, alongside `run-tests.yml`.
+#
+# Addresses SNOW-3428283 (Native CI/CD Integrations ORR §2.2 / §7.4 —
+# 48-hour latest-CLI compatibility SLO). Failure on `main` is the
+# L2-Critical alert trigger defined in ORR §4.3.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install-latest:
+    name: Install latest CLI via task install path
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Mirror the task's pinned uv install (installSnowflakeCli.ts). If
+      # taskutil.ts is bumped to a new uv version without a corresponding
+      # update here, the workflow must be updated in the same PR.
+      - name: Install pinned uv
+        run: |
+          set -euo pipefail
+          UV_VERSION="0.11.8"
+          UV_SHA256="56dd1b66701ecb62fe896abb919444e4b83c5e8645cca953e6ddd496ff8a0feb"
+          UV_ARCHIVE="uv-x86_64-unknown-linux-gnu.tar.gz"
+          curl -fsSL -o "/tmp/${UV_ARCHIVE}" \
+            "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/${UV_ARCHIVE}"
+          echo "${UV_SHA256}  /tmp/${UV_ARCHIVE}" | sha256sum -c -
+          tar -xzf "/tmp/${UV_ARCHIVE}" -C /tmp
+          sudo install -m 0755 "/tmp/uv-x86_64-unknown-linux-gnu/uv" /usr/local/bin/uv
+          uv --version
+
+      - name: Install latest Snowflake CLI
+        run: uv tool install snowflake-cli
+
+      - name: Smoke-test installed CLI
+        run: |
+          set -e
+          export PATH="$HOME/.local/bin:$PATH"
+          snow --version
+          snow --help > /dev/null
+          snow connection list > /dev/null
