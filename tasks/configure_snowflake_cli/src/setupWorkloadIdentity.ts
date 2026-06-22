@@ -65,5 +65,8 @@ export async function setupWorkloadIdentity(connectedServiceName: string) {
     tl.setVariable('SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER', 'OIDC');
     tl.setVariable('SNOWFLAKE_TOKEN', oidcToken, true);
 
+    // Telemetry: tell the Snowflake CLI which auth type this task configured.
+    tl.setVariable('SF_CICD_AUTH_TYPE', 'oidc');
+
     console.log('Workload identity authentication configured successfully (OIDC).');
 }
