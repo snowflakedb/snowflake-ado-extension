@@ -102,6 +102,10 @@ describe('Snowflake Cli configuration', function () {
                 assert.equal(tr.stdout.indexOf('SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER=OIDC') >= 0, true, "should set SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER");
             })
 
+            await test('Should set SF_CICD_AUTH_TYPE to oidc', () => {
+                assert.equal(tr.stdout.indexOf('SF_CICD_AUTH_TYPE=oidc') >= 0, true, "should set SF_CICD_AUTH_TYPE");
+            })
+
             await test('Should set SNOWFLAKE_TOKEN as secret', () => {
                 assert.equal(tr.stdout.indexOf('SNOWFLAKE_TOKEN=') >= 0, true, "should set SNOWFLAKE_TOKEN");
             })
