@@ -1,0 +1,31 @@
+{
+  "name": "buildandrelasetask",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run build:dev && mocha tests/configureCortexCodeTest/_suite.js",
+    "create:extension": "git clean -xdf && npm run install:prod && npm run build:prod && cd ../../ && tfx extension create --manifest-globs vss-extension.json && cd tasks/configure_cortex_code",
+    "build:dev": "tsc -b tsconfig.dev.json",
+    "build:prod": "tsc -b tsconfig.prod.json",
+    "install:dev": "npm install",
+    "install:prod": "npm install --production"
+  },
+  "keywords": [],
+  "author": "Snowflake Labs",
+  "license": "Apache License 2.0",
+  "dependencies": {
+    "azure-devops-node-api": "^14.1.0",
+    "azure-pipelines-task-lib": "^4.13.0",
+    "azure-pipelines-tool-lib": "^2.0.7",
+    "@types/node": "^20.14.2",
+    "@types/q": "^1.5.8",
+
+    "sync-request": "^6.1.0",
+    "typescript": "^5.5.3"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "mocha": "^10.6.0"
+  }
+}

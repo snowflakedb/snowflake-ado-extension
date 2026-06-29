@@ -19,7 +19,33 @@ jobs:
       if: failure()
       run: |
         cd tasks/configure_snowflake_cli/tests/configureSnowflakeCliTest
-        
+
+        for LOG_FILE in *.log; do
+            if [[ -e "$LOG_FILE" ]]; then
+            echo "Contents of $LOG_FILE:"
+            cat "$LOG_FILE"
+            echo "---------------------------------"
+            fi
+        done
+
+  unit-test-cortex:
+    name: Unit Test configure_cortex_code Task
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Run Unit Tests
+      run: |
+        cd tasks/configure_cortex_code
+        export TASK_TEST_TRACE=1
+        npm ci
+        npm test
+
+    - name: Show logs
+      if: failure()
+      run: |
+        cd tasks/configure_cortex_code/tests/configureCortexCodeTest
+
         for LOG_FILE in *.log; do
             if [[ -e "$LOG_FILE" ]]; then
             echo "Contents of $LOG_FILE:"

@@ -209,6 +209,78 @@ You can create the config.toml file directly within your YAML pipeline using a s
 
 For more information on setting Snowflake credentials using environment variables, refer to the [Snowflake CLI documentation](https://docs.snowflake.com/en/developer-guide/snowflake-cli-v2/connecting/specify-credentials#how-to-use-environment-variables-for-snowflake-credentials).
 
+## Cortex Code CLI
+
+The extension also contributes a companion task, `ConfigureCortexCodeCLI@0`, that installs the [Cortex Code CLI](https://docs.snowflake.com/en/user-guide/cortex-code/cortex-code-cli) (`cortex`) and configures a connection for CI/CD.
+
+Unlike `snow`, the `cortex` CLI requires a named connection in `~/.snowflake/connections.toml` — it does not read the `SNOWFLAKE_*` environment variables on its own. This task bridges that gap: when the `ConfigureSnowflakeCLI@0` task has set up workload identity (OIDC) earlier in the same job, it writes a `connections.toml` entry automatically so `cortex -c <name>` works with no manual file wrangling.
+
+### Inputs
+
+#### `cliChannel`
+
+The release channel to install from: `stable` (default) or `beta`.
+
+#### `cliVersion`
+
+The version to install. `latest` (default) installs the newest build in the selected channel. A specific version (for example `1.5.2`) is applied via `cortex update <version>` after install — this relies on the CLI's update semantics, which typically only move forward within a channel, so down-pinning below the channel's latest may not take effect. Prefer `cliChannel` for selecting which line to track.
+
+#### `connectionName`
+
+The connection name to write to `connections.toml` (default `default`). An existing connection with this name is never overwritten.
+
+### How it works
+
+1. Installs the Cortex Code CLI from the selected channel and puts `cortex` on `PATH` (`~/.local/bin`).
+2. If an OIDC token is available from the `ConfigureSnowflakeCLI@0` task (it sets `SNOWFLAKE_TOKEN` as a secret), writes a `[<connectionName>]` block to `connections.toml` using `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, and the OIDC token, with `0600` permissions.
+3. If no token is present, the task installs `cortex` and skips connection setup (install-only mode); if a connection of the same name already exists, it is left untouched.
+
+`SNOWFLAKE_ACCOUNT` and `SNOWFLAKE_USER` must be provided as pipeline variables or step env vars — the same values you use for the OIDC handshake. If a token is present but these are missing, the task fails rather than writing an incomplete connection.
+
+### Example
+
+Both tasks must run in the **same job** so the cortex task can read the OIDC token the Snowflake CLI task exports.
+
+```yaml
+pool:
+  vmImage: ubuntu-latest   # Linux agents only (see Platform support)
+
+steps:
+- task: ConfigureSnowflakeCLI@0
+  inputs:
+    useWorkloadIdentity: true
+    connectedServiceName: '<your-service-connection-name>'
+  displayName: Configure Snowflake CLI (OIDC)
+
+- task: ConfigureCortexCodeCLI@0
+  inputs:
+    cliChannel: stable
+    connectionName: default
+  displayName: Configure Cortex Code CLI
+  env:
+    SNOWFLAKE_ACCOUNT: $(SNOWFLAKE_ACCOUNT)
+    SNOWFLAKE_USER: $(SNOWFLAKE_USER)
+
+- script: |
+    cortex --version
+    cortex exec --file .cortex/prompts/scan.md -c default --bypass --no-history
+  displayName: Run Cortex Code
+```
+
+### Platform support
+
+The Cortex Code CLI task supports **Linux agents only**, matching the Snowflake CLI task.
+
+### Self-hosted agents
+
+On Microsoft-hosted agents the written `connections.toml` is ephemeral and disappears with the agent. Azure DevOps tasks have no post-job cleanup hook, so on **self-hosted** agents the file (mode `0600`, containing a short-lived OIDC token) persists in `~/.snowflake/` between jobs. Remove it at the end of the job if your agents are long-lived:
+
+```yaml
+- script: rm -f "$HOME/.snowflake/connections.toml"
+  condition: always()
+  displayName: Clean up connections.toml
+```
+
 ## Full Example Usage
 
 ### Configuration File
