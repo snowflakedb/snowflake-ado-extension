@@ -4,6 +4,7 @@ jobs:
   unit-test:
     name: Unit Test configure_snowflake_cli Task
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -11,12 +12,26 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '24'
-    - name: Run Unit Tests
+        cache: npm
+        cache-dependency-path: tasks/configure_snowflake_cli/package-lock.json
+    - name: Install dependencies
+      working-directory: tasks/configure_snowflake_cli
+      run: npm ci --no-audit --no-fund
+    - name: Prefetch MockTestRunner Node 24
       run: |
-        cd tasks/configure_snowflake_cli
-        export TASK_TEST_TRACE=1
+        set -euo pipefail
+        DEST="${HOME}/azure-pipelines-task-lib/_download/node24"
+        VER="v24.10.0"
+        mkdir -p "${DEST}"
+        curl -fsSL "https://nodejs.org/dist/${VER}/node-${VER}-linux-x64.tar.gz" -o "${DEST}/node.tar.gz"
+        tar -xzf "${DEST}/node.tar.gz" -C "${DEST}"
+        touch "${DEST}.completed"
+    - name: Run Unit Tests
+      working-directory: tasks/configure_snowflake_cli
+      env:
+        TASK_TEST_TRACE: '1'
+      run: |
         unset UV_TOOL_BIN_DIR
-        npm ci
         npm test
 
     - name: Show logs
