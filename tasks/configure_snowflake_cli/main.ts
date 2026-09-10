@@ -21,7 +21,7 @@ import { installSnowflakeCli } from './src/installSnowflakeCli';
 import { setupWorkloadIdentity } from './src/setupWorkloadIdentity';
 
 // Bump on each release to match vss-extension.json and task.json
-const INTEGRATION_VERSION = 'v1.1.0';
+const INTEGRATION_VERSION = 'v1.0.0';
 
 async function run() {
     try {
