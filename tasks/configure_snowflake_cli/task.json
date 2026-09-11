@@ -12,6 +12,7 @@
         "Minor": 0,
         "Patch": 0
     },
+    "minimumAgentVersion": "4.248.0",
     "instanceNameFormat": "Configure Snowflake CLI",
     "inputs": [
         {
@@ -49,7 +50,10 @@
         }
     ],
     "execution": {
-        "Node16": {
+        "Node20_1": {
+            "target": "main.js"
+        },
+        "Node24": {
             "target": "main.js"
         }
     }
