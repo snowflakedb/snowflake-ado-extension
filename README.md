@@ -6,7 +6,7 @@
 
 This extension streamlines installing and using [Snowflake CLI](https://docs.snowflake.com/developer-guide/snowflake-cli-v2/index) in your Azure Pipelines. The CLI is installed in an isolated way, ensuring it won't conflict with your project dependencies. It automatically sets up the input config file within the `~/.snowflake/` directory.
 
-The extension contributes a single build task, `ConfigureSnowflakeCLI@0`, that enables automation of your Snowflake CLI workflows, such as deploying Native Apps or running Snowpark scripts within your Snowflake environment.
+The extension contributes a single build task, `ConfigureSnowflakeCLI@1`, that enables automation of your Snowflake CLI workflows, such as deploying Native Apps or running Snowpark scripts within your Snowflake environment. Marketplace versions since Public Preview ship Major `1` only — `ConfigureSnowflakeCLI@0` is no longer published.
 
 ## Inputs
 
@@ -72,7 +72,11 @@ To set up workload identity authentication, follow these steps:
    > - bash: |
    >     echo "$SNOWFLAKE_TOKEN" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | python3 -m json.tool
    >   displayName: 'Debug: inspect OIDC token claims'
+   >   env:
+   >     SNOWFLAKE_TOKEN: $(SNOWFLAKE_TOKEN)
    > ```
+   >
+   > The task stores the OIDC token as a pipeline **secret**. Azure Pipelines does not inject secrets into later `script:` / `bash:` steps, so every later step that needs the token must map `env: SNOWFLAKE_TOKEN: $(SNOWFLAKE_TOKEN)`.
 
 4. **Configure the pipeline**:
 
@@ -95,7 +99,7 @@ To set up workload identity authentication, follow these steps:
      vmImage: ubuntu-latest
 
    steps:
-   - task: ConfigureSnowflakeCLI@0
+   - task: ConfigureSnowflakeCLI@1
      inputs:
        configFilePath: './config.toml'
        cliVersion: 'latest'
@@ -106,6 +110,8 @@ To set up workload identity authentication, follow these steps:
    - script: |
        snow --version
        snow connection test
+     env:
+       SNOWFLAKE_TOKEN: $(SNOWFLAKE_TOKEN)
    ```
 
 ### Alternative authentication methods
@@ -142,7 +148,7 @@ To set up Snowflake credentials for a specific connection, follow these steps:
    Add the `configFilePath` input to the Snowflake CLI task in your pipeline YAML file. This specifies the path to your `config.toml` file. For example:
 
    ```yaml
-   - task: ConfigureSnowflakeCLI@0
+   - task: ConfigureSnowflakeCLI@1
      inputs:
        cliVersion: 'latest'
        configFilePath: 'config.toml'
@@ -231,7 +237,7 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- task: ConfigureSnowflakeCLI@0
+- task: ConfigureSnowflakeCLI@1
   inputs:
     configFilePath: './config.toml'
     cliVersion: 'latest'
