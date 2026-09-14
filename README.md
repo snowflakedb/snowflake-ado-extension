@@ -6,7 +6,7 @@
 
 This extension streamlines installing and using [Snowflake CLI](https://docs.snowflake.com/developer-guide/snowflake-cli-v2/index) in your Azure Pipelines. The CLI is installed in an isolated way, ensuring it won't conflict with your project dependencies. It automatically sets up the input config file within the `~/.snowflake/` directory.
 
-The extension contributes a single build task, `ConfigureSnowflakeCLI@1`, that enables automation of your Snowflake CLI workflows, such as deploying Native Apps or running Snowpark scripts within your Snowflake environment. Marketplace versions since Public Preview ship Major `1` only — `ConfigureSnowflakeCLI@0` is no longer published.
+The extension contributes a single build task, `ConfigureSnowflakeCLI@1`, that enables automation of your Snowflake CLI workflows, such as deploying Native Apps or running Snowpark scripts within your Snowflake environment.
 
 ## Inputs
 
