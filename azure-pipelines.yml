@@ -48,11 +48,11 @@ stages:
               EOF
             displayName: 'Create Sample config.toml'
 
-          - task: ConfigureSnowflakeCLI@0
+          - task: ConfigureSnowflakeCLI@1
             inputs:
               configFilePath: './config.toml'
               cliVersion: '3.15.0'
-            displayName: 'ConfigureSnowflakeCLI@0 (pinned CLI)'
+            displayName: 'ConfigureSnowflakeCLI@1 (pinned CLI)'
 
           - script: snow connection list
             displayName: 'snow connection list'
@@ -62,11 +62,11 @@ stages:
           # the task are caught. Addresses SNOW-3428283 (Native CI/CD Integrations
           # ORR §2.2 / §7.4 — 48-hour latest-CLI compatibility SLO). Runs on the
           # same daily midnight schedule already defined above.
-          - task: ConfigureSnowflakeCLI@0
+          - task: ConfigureSnowflakeCLI@1
             inputs:
               configFilePath: './config.toml'
               cliVersion: 'latest'
-            displayName: 'ConfigureSnowflakeCLI@0 (latest CLI)'
+            displayName: 'ConfigureSnowflakeCLI@1 (latest CLI)'
 
           - script: snow --version && snow --help > /dev/null && snow connection list
             displayName: 'Smoke-test latest CLI'
@@ -79,33 +79,37 @@ stages:
       - job: oidc_e2e_latest
         displayName: 'Latest CLI — OIDC handshake against Snowflake'
         steps:
-          - task: ConfigureSnowflakeCLI@0
+          - task: ConfigureSnowflakeCLI@1
             inputs:
               useWorkloadIdentity: true
               connectedServiceName: $(SNOWFLAKE_ADO_SERVICE_CONNECTION)
-            displayName: 'ConfigureSnowflakeCLI@0 (OIDC, latest CLI)'
+            displayName: 'ConfigureSnowflakeCLI@1 (OIDC, latest CLI)'
 
           - script: |
               set -euo pipefail
               echo "Snowflake CLI version:"
               snow --version
               echo
-              echo "Verifying that the task exported the expected WIF env vars..."
+              echo "Verifying that WIF pipeline variables are available in this step..."
               : "${SNOWFLAKE_AUTHENTICATOR:?SNOWFLAKE_AUTHENTICATOR not set by the task}"
               : "${SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER:?provider not set by the task}"
-              : "${SNOWFLAKE_TOKEN:?token not set by the task}"
+              : "${SNOWFLAKE_TOKEN:?token not mapped; add env SNOWFLAKE_TOKEN from the pipeline secret}"
               test "$SNOWFLAKE_AUTHENTICATOR" = "WORKLOAD_IDENTITY"
               test "$SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER" = "OIDC"
               echo "WIF env vars look correct (token value masked)."
             displayName: 'Verify WIF env vars (no secret values logged)'
+            env:
+              SNOWFLAKE_TOKEN: $(SNOWFLAKE_TOKEN)
 
           - script: |
               set -euo pipefail
-              # Temporary connection (-x) authenticates using the SNOWFLAKE_*
-              # env vars the task just set, exercising the full OIDC path:
-              # ADO OIDC token -> Snowflake WIF -> Snowflake session.
+              # Temporary connection (-x) authenticates using SNOWFLAKE_ACCOUNT /
+              # SNOWFLAKE_USER plus the secret token mapped below. The task marks
+              # SNOWFLAKE_TOKEN as a pipeline secret, so later script steps must
+              # map it — Azure Pipelines does not inject secrets automatically.
               snow connection test -x
             displayName: 'snow connection test -x (OIDC handshake)'
             env:
               SNOWFLAKE_ACCOUNT: $(SNOWFLAKE_ACCOUNT)
               SNOWFLAKE_USER: $(SNOWFLAKE_USER)
+              SNOWFLAKE_TOKEN: $(SNOWFLAKE_TOKEN)
