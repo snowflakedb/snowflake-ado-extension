@@ -47,6 +47,9 @@
     "files": [
         {
             "path": "tasks/configure_snowflake_cli"
+        },
+        {
+            "path": "tasks/configure_cortex_code"
         }
     ],
     "contributions": [
@@ -58,6 +61,16 @@
             ],
             "properties": {
                 "name": "tasks/configure_snowflake_cli"
+            }
+        },
+        {
+            "id": "configure-cortex-code-task",
+            "type": "ms.vss-distributed-task.task",
+            "targets": [
+                "ms.vss-distributed-task.tasks"
+            ],
+            "properties": {
+                "name": "tasks/configure_cortex_code"
             }
         }
     ]

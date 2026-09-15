@@ -1,0 +1,51 @@
+{
+    "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
+    "id": "f25dfd14-df4c-4dda-990f-6d1d67121429",
+    "name": "ConfigureCortexCodeCLI",
+    "friendlyName": "Configure Cortex Code CLI",
+    "description": "Install the Cortex Code CLI (cortex) and auto-configure a connection for CI/CD. Run after the Configure Snowflake CLI task in the same job.",
+    "helpMarkDown": "Installs the Cortex Code CLI and, when the Configure Snowflake CLI task has set up workload identity (OIDC), writes a named connection to connections.toml so `cortex -c <name>` works. Linux agents only.",
+    "category": "Utility",
+    "author": "Snowflake Labs",
+    "version": {
+        "Major": 1,
+        "Minor": 0,
+        "Patch": 0
+    },
+    "instanceNameFormat": "Configure Cortex Code CLI",
+    "inputs": [
+        {
+            "name": "cliChannel",
+            "type": "pickList",
+            "label": "Install channel",
+            "defaultValue": "stable",
+            "required": false,
+            "options": {
+                "stable": "stable",
+                "beta": "beta"
+            },
+            "helpMarkDown": "Cortex Code CLI release channel to install: stable or beta."
+        },
+        {
+            "name": "cliVersion",
+            "type": "string",
+            "label": "Cortex Code CLI version",
+            "defaultValue": "latest",
+            "required": false,
+            "helpMarkDown": "Version to install. 'latest' installs the newest release in the selected channel. A specific version (e.g. 1.5.2) is applied via `cortex update <version>` after install; this relies on the CLI's update semantics, which typically only move forward within a channel."
+        },
+        {
+            "name": "connectionName",
+            "type": "string",
+            "label": "Connection name",
+            "defaultValue": "default",
+            "required": false,
+            "helpMarkDown": "Connection name to write to connections.toml when an OIDC token is available from the Configure Snowflake CLI task. An existing connection with this name is never overwritten."
+        }
+    ],
+    "execution": {
+        "Node16": {
+            "target": "main.js"
+        }
+    }
+}
