@@ -25,7 +25,7 @@ Follow these steps to create a release:
 2. **Set Up the Release Environment**: Navigate to the `tasks/configure_snowflake_cli` directory and execute the following command to create the extension:
 
    ```bash
-   npx run create:extension
+   npm run create:extension
    ```
 
 3. **Publish in Development Mode**: To publish your extension in **development mode**, remove the `"galleryFlags"` field from the `vss-extension.json` file. This ensures that your extension is published as private.
