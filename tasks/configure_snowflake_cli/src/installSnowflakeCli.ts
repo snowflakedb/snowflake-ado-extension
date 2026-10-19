@@ -74,14 +74,35 @@ function installUv(): string {
     return uvBinary;
 }
 
+// uv installs tool executables into $UV_TOOL_BIN_DIR, otherwise $XDG_BIN_HOME,
+// otherwise ~/.local/bin. It does not publish that path back to the pipeline,
+// so an unset UV_TOOL_BIN_DIR must resolve to the same directory uv uses.
+function resolveUvToolBinDir(): string {
+    const configured = tl.getVariable(utils.UV_TOOL_BIN_DIR);
+    if (configured) {
+        return configured;
+    }
+    if (process.env.XDG_BIN_HOME) {
+        return process.env.XDG_BIN_HOME;
+    }
+    const home = process.env.HOME || os.homedir();
+    return path.join(home, '.local', 'bin');
+}
+
+function uvChildEnv(uvToolBinDir: string): { [key: string]: string } {
+    const env: { [key: string]: string } = {};
+    for (const [key, value] of Object.entries(process.env)) {
+        if (value !== undefined) {
+            env[key] = value;
+        }
+    }
+    env[utils.UV_TOOL_BIN_DIR] = uvToolBinDir;
+    return env;
+}
+
 // Copies the snow executable installed by `uv tool install` into a stable,
 // exported directory so the rest of the pipeline can resolve `snow` on PATH.
-function addExecutableToPathVariable() {
-    const uvToolBinDir = tl.getVariable(utils.UV_TOOL_BIN_DIR);
-    if (uvToolBinDir === undefined) {
-        throw new Error(`Error environment variable ${utils.UV_TOOL_BIN_DIR} not set`);
-    }
-
+function addExecutableToPathVariable(uvToolBinDir: string) {
     const snowExecutableName = utils.getPlatform() == utils.Platform.Windows ? "snow.exe" : "snow";
     const installedSnowPath = path.join(uvToolBinDir, snowExecutableName);
     const outputDir = tl.getVariable(utils.SNOW_EXECUTABLE_OUTPUT_PATH)
@@ -93,13 +114,15 @@ function addExecutableToPathVariable() {
     tl.prependPath(outputDir);
 }
 
-function installSnowflakeCliWithUv(cliVersion: string | undefined) {
+function installSnowflakeCliWithUv(cliVersion: string | undefined, uvToolBinDir: string) {
     const uvBinary = installUv();
     const spec = (cliVersion === undefined || cliVersion === "" || cliVersion === "latest")
         ? utils.SNOWFLAKE_PACKAGE_NAME
         : `${utils.SNOWFLAKE_PACKAGE_NAME}==${cliVersion}`;
 
-    const result = tl.execSync(uvBinary, ['tool', 'install', '--force', spec]);
+    const result = tl.execSync(uvBinary, ['tool', 'install', '--force', spec], {
+        env: uvChildEnv(uvToolBinDir),
+    });
     if (result.code !== 0) {
         throw new Error("Error while installing snowflake-cli: " + result.stderr);
     }
@@ -107,12 +130,13 @@ function installSnowflakeCliWithUv(cliVersion: string | undefined) {
 
 export async function installSnowflakeCli(cliVersion: string | undefined) {
     try {
+        const uvToolBinDir = resolveUvToolBinDir();
         const disableSnowInstallation = tl.getVariable(utils.DISABLE_SNOW_INSTALLATION_WITH_UV);
         if (disableSnowInstallation === undefined || disableSnowInstallation == 'false') {
-            installSnowflakeCliWithUv(cliVersion);
+            installSnowflakeCliWithUv(cliVersion, uvToolBinDir);
         }
 
-        addExecutableToPathVariable();
+        addExecutableToPathVariable(uvToolBinDir);
     }
     catch (err: any) {
         tl.setResult(tl.TaskResult.Failed, err.message);

@@ -15,18 +15,27 @@
 
 import tmrm = require('azure-pipelines-task-lib/mock-run');
 import path from 'path';
-import os from 'os';
+import fs from 'fs';
 import {TEMP_CONFIG_FILE_PATH, TEMP_EXEC_OUTPUT_PATH} from './constants'
 
 const taskPath = path.join(__dirname, '..', '..', 'main.js');
 
-const task: tmrm.TaskMockRunner = new tmrm.TaskMockRunner(taskPath);
+// uv's default tool bin dir is $HOME/.local/bin when UV_TOOL_BIN_DIR and
+// XDG_BIN_HOME are unset. Stage a snow executable there and expect success.
+const homeDir = path.join(__dirname, 'temp', 'home');
+const defaultBinDir = path.join(homeDir, '.local', 'bin');
+fs.mkdirSync(defaultBinDir, { recursive: true });
+fs.copyFileSync(path.join(__dirname, 'testFiles', 'snow'), path.join(defaultBinDir, 'snow'));
+
+delete process.env["UV_TOOL_BIN_DIR"];
+delete process.env["XDG_BIN_HOME"];
+process.env["HOME"] = homeDir;
 process.env["CONFIG_TOML_FILE_OUTPUT_PATH"] = TEMP_CONFIG_FILE_PATH;
 process.env["SNOW_EXECUTABLE_OUTPUT_PATH"] = TEMP_EXEC_OUTPUT_PATH;
-// Deliberately omit UV_TOOL_BIN_DIR to trigger the failure case.
 // Disable the real install so the test does not hit the network.
 process.env["DISABLE_SNOW_INSTALLATION_WITH_UV"] = 'true';
 
+const task: tmrm.TaskMockRunner = new tmrm.TaskMockRunner(taskPath);
 task.setInput('configFilePath', path.join(__dirname, 'testFiles', 'config.toml'));
 task.setInput('cliVersion', '3.17.0');
 task.run(true);
