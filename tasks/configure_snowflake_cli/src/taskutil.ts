@@ -26,9 +26,9 @@ export const SNOWFLAKE_PACKAGE_NAME = "snowflake-cli";
 // Pinned uv version. Bump both values together; the SHA-256 must match the
 // published digest at
 // https://github.com/astral-sh/uv/releases/download/<version>/uv-x86_64-unknown-linux-gnu.tar.gz.sha256
-export const UV_VERSION = "0.11.8";
+export const UV_VERSION = "0.13.5";
 export const UV_LINUX_X86_64_SHA256 =
-    "56dd1b66701ecb62fe896abb919444e4b83c5e8645cca953e6ddd496ff8a0feb";
+    "f68d291c75783122dad58ab77def0e13f3233f358731db5d6d7e8715603b928f";
 
 export enum Platform {
     Windows,
