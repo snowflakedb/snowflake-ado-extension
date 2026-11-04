@@ -2,7 +2,7 @@
     "manifestVersion": 1,
     "id": "build-release-task",
     "name": "DevOps for Snowflake CLI",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "publisher": "snowflake",
     "targets": [
         {
@@ -26,8 +26,7 @@
         "uri": "https://github.com/snowflakedb/snowflake-ado-extension"
     },
     "galleryFlags": [
-        "Public",
-        "Preview"
+        "Public"
     ],
     "links": {
         "Snowflake CLI": {
